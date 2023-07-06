@@ -65,4 +65,14 @@ The next region corresponds to the first swap, and is assigned accordingly.  The
 
 The image below shows the entries constrained by the "swap gate."
 
-[Swap Gate}(images/swap_gate.png)
+[Swap Gate](images/swap_gate.png)
+
+[Bit Gates](images/bit_gates.png)
+
+[Difference Gate](images/difference_gate.png)
+
+[Assigning Second Swap](images/assigning_second_swap.png)
+
+In reality, another "pass" consisting of two more regions would be added before the output is checked since, in the worst case, a three-element list needs two passes to be sorted.  However, for the purposes of this readme, we'll just skip to the final phase of output checking.
+
+[Checking Output](images/checking_output.png)
