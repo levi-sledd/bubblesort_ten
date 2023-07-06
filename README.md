@@ -17,17 +17,17 @@ Therefore we need some clever strategy to constrain the swaps so that the verifi
 Now |a - b| is either equal to a - b if a > b, in which case a swap is needed; or b - a if a <= b, in which case a swap is not needed.  Again, since the field is large, |a - b| is not equal to both unless a = b, in which case either swapping or not swapping is permissible.
 
 Let (a', b') be the result of applying the conditional swap to (a, b).  We should have a' = b if a > b and a' = a otherwise; and b' = a if a > b, and b' = b otherwise.  Then our strategy for verifying a correct swap is the following:
-- Have the prover tell you whether they plan on swapping a and b, using an auxiliary value z = 1 if a > b, and z = 0 otherwise. Constrain z to be either 0 or 1 with the constraint z^2 - z = 0.
+- Have the prover tell you whether they plan on swapping a and b, using an auxiliary value x = 1 if a > b, and x = 0 otherwise. Constrain x to be either 0 or 1 with the constraint x^2 - x = 0.
 - Have the prover decompose |a - b| into bits x_0, x_1, ..., x_{31}. Constrain (x_i)^2 - x_i = 0 for each i.
 - Constrain that
-  - x_0 + 2x_1 + ... + 2x_{31} = b - a if z = 0
-  - x_0 + 2x_1 + ... + 2x_{31} = a - b if z = 1
-  - a' = a if z = 0
-  - a' = b if z = 1
-  - b' = b if z = 0
-  - b' = a if z = 1
+  - x_0 + 2x_1 + ... + 2x_{31} = b - a if x = 0
+  - x_0 + 2x_1 + ... + 2x_{31} = a - b if x = 1
+  - a' = a if x = 0
+  - a' = b if x = 1
+  - b' = b if x = 0
+  - b' = a if x = 1
 
-Now, a relation of the form "s = (t if u = 0, v if u = 1)" can be written as the polynomial constraint s = (1-u)t + uv.  So all the above constraints are polynomial, and there exists a satisfying assignment (a, b, a', b', z, x_0, x_1, ..., x_{31}) if and only if (a', b') is the result of applying a conditional swap to (a,b).
+Now, a relation of the form "s = (t if u = 0, v if u = 1)" can be written as the polynomial constraint s = (1-u)t + uv.  So all the above constraints are polynomial, and there exists a satisfying assignment (a, b, a', b', x, x_0, x_1, ..., x_{31}) if and only if (a', b') is the result of applying a conditional swap to (a,b).
 
 ## How it Works: a Small Example
 
@@ -53,10 +53,16 @@ This holds the expected output of the computation.  It doesn't belong to any reg
 
 ### Synthesis
 
-Suppose that the list we want to sort is [8, 5, 9].
+Suppose that the list we want to sort is [8, 5, 9].  The expected output of a sort would be [5, 8, 9], which the verifier will write to the instance column.
 
 First, the prover assigns the input to the first region.  That is, they assign 8 to advice column a_0, 5 to advice column a_1, and 9 to advice column a_2.  At this stage, nothing is constrained, so no selectors are enabled.  The only reason for this step is technical: to assign one swap we need to copy a list of assigned cells that correspond to the current state of the list.  Therefore, we have to assign some cells before beginning to assign swaps.
 
 [Assigning Input](images/assigning_input.png)
 
-Next, 
+The next region corresponds to the first swap, and is assigned accordingly.  The output from the previous assignment is copied to advice columns a_0, a_1, a_2 using copy constraints.  Offline, the prover fills in swap with 1, since 8 > 5, calculates the difference |8 - 5| = 3 = 110...0 in binary, and assigns these bits to the diff_bits column.  The 2^n fixed column is filled in with powers of 2 from 2^0 to 2^{31}.  Since this column is fixed, the prover cannot assign to this column, and the assignment instead happens as part of the setup.  The bit selectors and the swap selector s_0 are enabled, since the first conditional swap should be applied to indices 0 and 1.  Similarly, the prover has no control over this.
+
+[Assigning First Swap](images/assigning_first_swap.png)
+
+The image below shows the entries constrained by the "swap gate."
+
+[Swap Gate}(images/swap_gate.png)
