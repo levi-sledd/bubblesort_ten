@@ -55,24 +55,30 @@ This holds the expected output of the computation.  It doesn't belong to any reg
 
 Suppose that the list we want to sort is [8, 5, 9].  The expected output of a sort would be [5, 8, 9], which the verifier will write to the instance column.
 
-First, the prover assigns the input to the first region.  That is, they assign 8 to advice column a_0, 5 to advice column a_1, and 9 to advice column a_2.  At this stage, nothing is constrained, so no selectors are enabled.  The only reason for this step is technical: to assign one swap we need to copy a list of assigned cells that correspond to the current state of the list.  Therefore, we have to assign some cells before beginning to assign swaps.
-
 [Assigning Input](images/assigning_input.png)
 
-The next region corresponds to the first swap, and is assigned accordingly.  The output from the previous assignment is copied to advice columns a_0, a_1, a_2 using copy constraints.  Offline, the prover fills in swap with 1, since 8 > 5, calculates the difference |8 - 5| = 3 = 110...0 in binary, and assigns these bits to the diff_bits column.  The 2^n fixed column is filled in with powers of 2 from 2^0 to 2^{31}.  Since this column is fixed, the prover cannot assign to this column, and the assignment instead happens as part of the setup.  The bit selectors and the swap selector s_0 are enabled, since the first conditional swap should be applied to indices 0 and 1.  Similarly, the prover has no control over this.
+First, the prover assigns the input to the first region.  That is, they assign 8 to advice column a_0, 5 to advice column a_1, and 9 to advice column a_2.  At this stage, nothing is constrained, so no selectors are enabled.  The only reason for this step is technical: to assign one swap we need to copy a list of assigned cells that correspond to the current state of the list.  Therefore, we have to assign some cells before beginning to assign swaps
 
 [Assigning First Swap](images/assigning_first_swap.png)
 
-The image below shows the entries constrained by the "swap gate."
-
-[Swap Gate](images/swap_gate.png)
+The next region corresponds to the first swap, and is assigned accordingly.  The output from the previous assignment is copied to advice columns a_0, a_1, a_2 using copy constraints, which are shown in yellow in the above image.  This is the _first_ swap, so the indices that may be swapped are 0 and 1; the rest of the list should stay the same.  Therefore there are additional copy constraints for the rest of the list, which in this case just copies the third entry from the "input" row (offset 0 in the region R_1) to the "output" row (offset 1).  The copy constraints are built into the circuit, and are not up to the prover.  The prover fills in "swap" with 1, since 8 > 5.  Offline, the prover calculates the difference |8 - 5| = 3 = 110...0 in binary, then assigns these bits to the diff_bits column in the circuit.  The 2^n fixed column is filled in with powers of 2 from 2^0 to 2^{31}.  Since this column is fixed, the prover cannot assign to this column: the assignment instead happens as part of the setup.  The bit selectors and the swap selector s_0 are enabled, since the first conditional swap should be applied to indices 0 and 1.  Similarly, the prover has no control over the selectors.
 
 [Bit Gates](images/bit_gates.png)
 
+At this stage we can see which gates are enabled by our selectors, and which cells they constrain.  The above image is a visualization of the "bit gate" constraints.  Cells that are in a constraint together are highlighted in the same color.  Since the "swap bit" selector is enabled, the entry at the same row in the "swap" column is constrained to be either 0 or 1.  Similarly, since the "diff bit" selector is enabled at each row from 1 to 32, each corresponding entry in the "diff" column is also constrained to be either 0 or 1.
+
 [Difference Gate](images/difference_gate.png)
+
+The swap selector s_0 is enabled, which also turns on the "difference" gate.  This difference gate constrains the sum of the componentwise product of the "diff bits" column and the "2^n" column to be equal to a_0 - a_1 if "swap" is 1, or a_1 - a_0 if "swap" is 0.  This verifies that the prover correctly determined whether there should be a swap at this stage.  Note that since the advice columns are not seen by the verifier, the verifier need not know what the entries are to be convinced that they were swapped correctly.
+
+[Swap Gate](images/swap_gate.png)
+
+Next we have the "swap gate," which encapsulates the logic of swapping, provided that "swap" is filled in correctly.  This is also enabled at indices 0 and 1 by s_0.  It constrains a_0 and a_1 at offset 1 to be the conditional swap of a_0 and a_1 at offset 0.
 
 [Assigning Second Swap](images/assigning_second_swap.png)
 
-In reality, another "pass" consisting of two more regions would be added before the output is checked since, in the worst case, a three-element list needs two passes to be sorted.  However, for the purposes of this readme, we'll just skip to the final phase of output checking.
+The second swap is assigned similar to the first, only this time the swap selector s_0 is disabled and the swap selector s_1 is enabled instead.  The first entry a_0 is constrained with copy constraints this time, while s_1 constrains the conditional swap relation on a_1 and a_2.
 
 [Checking Output](images/checking_output.png)
+
+In reality, another "pass" consisting of two more regions would be added before the output is checked since, in the worst case, a three-element list needs two passes to be sorted.  However, for the purposes of this readme, we'll just skip to the final phase of output checking.  In the output checking step, copy constraints are added to constrain the final output cells to be equal to the corresponding expected output provided by the verifier in the instance column.
